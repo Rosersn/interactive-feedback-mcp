@@ -13,16 +13,52 @@ from datetime import datetime
 from typing import Optional, TypedDict, List
 
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QLineEdit, QPushButton, QCheckBox, QTextEdit, QTextBrowser, QGroupBox,
-    QFrame, QScrollArea, QGridLayout
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QCheckBox,
+    QTextEdit,
+    QTextBrowser,
+    QGroupBox,
+    QFrame,
+    QScrollArea,
+    QGridLayout,
 )
-from PySide6.QtCore import Qt, Signal, QObject, QTimer, QSettings, QUrl, QDateTime, QBuffer, QIODevice
-from PySide6.QtGui import QTextCursor, QIcon, QKeyEvent, QPalette, QColor, QTextImageFormat, QTextDocument, QPixmap, QShortcut, QKeySequence, QFont
+from PySide6.QtCore import (
+    Qt,
+    Signal,
+    QObject,
+    QTimer,
+    QSettings,
+    QUrl,
+    QDateTime,
+    QBuffer,
+    QIODevice,
+)
+from PySide6.QtGui import (
+    QTextCursor,
+    QIcon,
+    QKeyEvent,
+    QPalette,
+    QColor,
+    QTextImageFormat,
+    QTextDocument,
+    QPixmap,
+    QShortcut,
+    QKeySequence,
+    QFont,
+)
+
 
 class FeedbackResult(TypedDict):
     interactive_feedback: str
     images: List[str]
+
 
 def get_dark_mode_palette(app: QApplication):
     darkPalette = app.palette()
@@ -45,9 +81,12 @@ def get_dark_mode_palette(app: QApplication):
     darkPalette.setColor(QPalette.Highlight, QColor(42, 130, 218))
     darkPalette.setColor(QPalette.Disabled, QPalette.Highlight, QColor(80, 80, 80))
     darkPalette.setColor(QPalette.HighlightedText, Qt.white)
-    darkPalette.setColor(QPalette.Disabled, QPalette.HighlightedText, QColor(127, 127, 127))
+    darkPalette.setColor(
+        QPalette.Disabled, QPalette.HighlightedText, QColor(127, 127, 127)
+    )
     darkPalette.setColor(QPalette.PlaceholderText, QColor(127, 127, 127))
     return darkPalette
+
 
 class FeedbackTextEdit(QTextEdit):
     # 图片处理常量
@@ -60,7 +99,7 @@ class FeedbackTextEdit(QTextEdit):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.image_data = []   # 保存图片的Base64数据列表
+        self.image_data = []  # 保存图片的Base64数据列表
         # 获取设备的像素比例
         self.device_pixel_ratio = QApplication.primaryScreen().devicePixelRatio()
         # 图片压缩参数
@@ -69,13 +108,17 @@ class FeedbackTextEdit(QTextEdit):
         self.image_format = self.DEFAULT_IMAGE_FORMAT  # 图片格式
 
     def keyPressEvent(self, event: QKeyEvent):
-        if event.key() == Qt.Key_Return and event.modifiers() == Qt.ControlModifier:
-            # Find the parent FeedbackUI instance and call submit
-            parent = self.parent()
-            while parent and not isinstance(parent, FeedbackUI):
-                parent = parent.parent()
-            if parent:
-                parent._submit_feedback()
+        if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
+            if event.modifiers() == Qt.ShiftModifier:
+                # Shift+Enter: 换行
+                super().keyPressEvent(event)
+            else:
+                # Enter: 发送
+                parent = self.parent()
+                while parent and not isinstance(parent, FeedbackUI):
+                    parent = parent.parent()
+                if parent:
+                    parent._submit_feedback()
         else:
             super().keyPressEvent(event)
 
@@ -97,14 +140,11 @@ class FeedbackTextEdit(QTextEdit):
 
             # 获取字节数据并转换为base64
             byte_array = buffer.data()
-            base64_string = base64.b64encode(byte_array).decode('utf-8')
+            base64_string = base64.b64encode(byte_array).decode("utf-8")
             buffer.close()
 
             # 返回Base64数据和文件扩展名
-            return {
-                'data': base64_string,
-                'extension': file_extension
-            }
+            return {"data": base64_string, "extension": file_extension}
         except Exception as e:
             print(f"转换图片为Base64时出错: {e}")
             return None
@@ -133,8 +173,8 @@ class FeedbackTextEdit(QTextEdit):
 
                             # 保存Base64数据
                             image_info = {
-                                'base64': image_result['data'],
-                                'filename': filename
+                                "base64": image_result["data"],
+                                "filename": filename,
                             }
                             self.image_data.append(image_info)
 
@@ -173,6 +213,7 @@ class FeedbackTextEdit(QTextEdit):
     def get_image_data(self):
         """返回图片数据列表（包含Base64编码）"""
         return self.image_data.copy()
+
 
 class FeedbackUI(QMainWindow):
     # 缓存Markdown实例
@@ -214,7 +255,7 @@ class FeedbackUI(QMainWindow):
         y = (screen.height() - window_height) // 2
         self.move(x, y)
 
-        self.settings.endGroup() # End "MainWindow_General" group
+        self.settings.endGroup()  # End "MainWindow_General" group
 
         self._create_ui()
         self._setup_shortcuts()  # 添加快捷键设置
@@ -234,8 +275,9 @@ class FeedbackUI(QMainWindow):
             # 方式1: 尝试JSON解码（适用于从JSON参数传入的情况）
             try:
                 import json
+
                 # 如果文本看起来像是被JSON编码过的字符串，尝试解码
-                if '\\n' in text or '\\t' in text or '\\r' in text:
+                if "\\n" in text or "\\t" in text or "\\r" in text:
                     # 添加引号使其成为有效JSON字符串，然后解码
                     decoded_text = json.loads(f'"{text}"')
                     print(f"JSON解码成功: {repr(decoded_text)}")
@@ -247,22 +289,22 @@ class FeedbackUI(QMainWindow):
                 # 如果JSON解码失败，使用字符串替换方法
 
                 # 先检查是否存在双重转义（如 \\n）
-                if '\\\\n' in text:
+                if "\\\\n" in text:
                     # 处理双重转义的换行符
-                    text = text.replace('\\\\n', '\n')
-                    text = text.replace('\\\\t', '\t')
-                    text = text.replace('\\\\r', '\r')
-                    text = text.replace('\\\\\\\\', '\\')  # 四重反斜杠变成单反斜杠
+                    text = text.replace("\\\\n", "\n")
+                    text = text.replace("\\\\t", "\t")
+                    text = text.replace("\\\\r", "\r")
+                    text = text.replace("\\\\\\\\", "\\")  # 四重反斜杠变成单反斜杠
                 else:
                     # 1. 处理字面上的转义序列
-                    text = text.replace('\\\\', '\\')  # 先处理双反斜杠
-                    text = text.replace('\\n', '\n')
-                    text = text.replace('\\t', '\t')
-                    text = text.replace('\\r', '\r')
+                    text = text.replace("\\\\", "\\")  # 先处理双反斜杠
+                    text = text.replace("\\n", "\n")
+                    text = text.replace("\\t", "\t")
+                    text = text.replace("\\r", "\r")
 
             # 2. 规范化换行符
-            text = text.replace('\r\n', '\n')
-            text = text.replace('\r', '\n')
+            text = text.replace("\r\n", "\n")
+            text = text.replace("\r", "\n")
 
         # 记录处理后的文本（用于调试）
         print(f"预处理后文本: {repr(text)}")
@@ -282,24 +324,24 @@ class FeedbackUI(QMainWindow):
 
         # 检查常见的Markdown语法特征
         markdown_patterns = [
-            r'^#{1,6}\s+.+',                  # 标题: # 标题文本
-            r'\*\*.+?\*\*',                   # 粗体: **文本**
-            r'\*.+?\*',                       # 斜体: *文本*
-            r'_.+?_',                         # 斜体: _文本_
-            r'`[^`]+`',                       # 行内代码: `代码`
-            r'^\s*```',                       # 代码块: ```
-            r'^\s*>',                         # 引用: > 文本
-            r'^\s*[-*+]\s+',                  # 无序列表: - 项目 或 * 项目 或 + 项目
-            r'^\s*\d+\.\s+',                  # 有序列表: 1. 项目
-            r'\[.+?\]\(.+?\)',                # 链接: [文本](URL)
-            r'!\[.+?\]\(.+?\)',               # 图片: ![alt](URL)
-            r'\|.+\|.+\|',                    # 表格
-            r'^-{3,}$',                       # 水平线: ---
-            r'^={3,}$',                       # 水平线: ===
+            r"^#{1,6}\s+.+",  # 标题: # 标题文本
+            r"\*\*.+?\*\*",  # 粗体: **文本**
+            r"\*.+?\*",  # 斜体: *文本*
+            r"_.+?_",  # 斜体: _文本_
+            r"`[^`]+`",  # 行内代码: `代码`
+            r"^\s*```",  # 代码块: ```
+            r"^\s*>",  # 引用: > 文本
+            r"^\s*[-*+]\s+",  # 无序列表: - 项目 或 * 项目 或 + 项目
+            r"^\s*\d+\.\s+",  # 有序列表: 1. 项目
+            r"\[.+?\]\(.+?\)",  # 链接: [文本](URL)
+            r"!\[.+?\]\(.+?\)",  # 图片: ![alt](URL)
+            r"\|.+\|.+\|",  # 表格
+            r"^-{3,}$",  # 水平线: ---
+            r"^={3,}$",  # 水平线: ===
         ]
 
         # 遍历文本的每一行，检查是否包含Markdown语法特征
-        lines = text.split('\n')
+        lines = text.split("\n")
         markdown_features_count = 0
 
         for line in lines:
@@ -307,13 +349,24 @@ class FeedbackUI(QMainWindow):
                 if re.search(pattern, line, re.MULTILINE):
                     markdown_features_count += 1
                     # 如果发现明确的Markdown特征，立即返回True
-                    if pattern in [r'^#{1,6}\s+.+', r'^\s*```', r'^\s*>', r'^\s*[-*+]\s+', r'^\s*\d+\.\s+', r'\|.+\|.+\|', r'^-{3,}$', r'^={3,}$']:
+                    if pattern in [
+                        r"^#{1,6}\s+.+",
+                        r"^\s*```",
+                        r"^\s*>",
+                        r"^\s*[-*+]\s+",
+                        r"^\s*\d+\.\s+",
+                        r"\|.+\|.+\|",
+                        r"^-{3,}$",
+                        r"^={3,}$",
+                    ]:
                         return True
 
         # 如果文本中包含一定数量的Markdown特征，则视为Markdown
         # 这里根据特征数量和文本长度的比例来判断
         # 如果特征数量超过2个或特征密度较高，则视为Markdown
-        return markdown_features_count >= 2 or (markdown_features_count > 0 and markdown_features_count / len(lines) > 0.1)
+        return markdown_features_count >= 2 or (
+            markdown_features_count > 0 and markdown_features_count / len(lines) > 0.1
+        )
 
     def _convert_text_to_html(self, text: str) -> str:
         """
@@ -324,7 +377,9 @@ class FeedbackUI(QMainWindow):
         text = self._preprocess_text(text)
 
         # HTML转义
-        escaped_text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        escaped_text = (
+            text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        )
 
         # 保留换行
         html_text = escaped_text.replace("\n", "<br>")
@@ -350,26 +405,27 @@ class FeedbackUI(QMainWindow):
             from markdown.extensions import codehilite, tables, toc
 
             # 配置markdown扩展，添加emoji支持
-            extensions = ['extra', 'codehilite', 'toc']
+            extensions = ["extra", "codehilite", "toc"]
 
             # 尝试添加emoji扩展（如果可用）
             try:
                 import pymdownx.emoji
-                extensions.append('pymdownx.emoji')
+
+                extensions.append("pymdownx.emoji")
                 extension_configs = {
-                    'pymdownx.emoji': {
-                        'emoji_index': pymdownx.emoji.gemoji,
-                        'emoji_generator': pymdownx.emoji.to_svg,
-                        'alt': 'short',
-                        'options': {
-                            'attributes': {
-                                'align': 'absmiddle',
-                                'height': '20px',
-                                'width': '20px'
+                    "pymdownx.emoji": {
+                        "emoji_index": pymdownx.emoji.gemoji,
+                        "emoji_generator": pymdownx.emoji.to_svg,
+                        "alt": "short",
+                        "options": {
+                            "attributes": {
+                                "align": "absmiddle",
+                                "height": "20px",
+                                "width": "20px",
                             },
-                            'image_path': 'https://assets-cdn.github.com/images/icons/emoji/unicode/',
-                            'non_standard_image_path': 'https://assets-cdn.github.com/images/icons/emoji/'
-                        }
+                            "image_path": "https://assets-cdn.github.com/images/icons/emoji/unicode/",
+                            "non_standard_image_path": "https://assets-cdn.github.com/images/icons/emoji/",
+                        },
                     }
                 }
             except ImportError:
@@ -379,8 +435,7 @@ class FeedbackUI(QMainWindow):
             # 使用缓存的Markdown实例或创建新实例
             if FeedbackUI._markdown_instance is None:
                 FeedbackUI._markdown_instance = markdown.Markdown(
-                    extensions=extensions,
-                    extension_configs=extension_configs
+                    extensions=extensions, extension_configs=extension_configs
                 )
 
             # 重置实例以确保状态清空
@@ -478,7 +533,9 @@ class FeedbackUI(QMainWindow):
         except ImportError:
             # Fallback if markdown library is not installed
             # Log that markdown library is not found and basic conversion is used.
-            print("Markdown library not found. Using basic HTML escaping for description.")
+            print(
+                "Markdown library not found. Using basic HTML escaping for description."
+            )
             return self._convert_text_to_html(markdown_text)
         except Exception as e:
             # Fallback for any other error during markdown conversion
@@ -489,7 +546,7 @@ class FeedbackUI(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)
-        layout.setContentsMargins(15,8,15,5)
+        layout.setContentsMargins(15, 8, 15, 5)
 
         # Description text area (from self.prompt) - Support multiline, selectable and copyable with markdown support
         self.description_text = QTextBrowser()
@@ -497,7 +554,9 @@ class FeedbackUI(QMainWindow):
 
         # QTextBrowser 默认就是只读的，支持选择和复制
         self.description_text.setMaximumHeight(600)  # 设置最大高度，防止按钮溢出屏幕
-        self.description_text.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)  # 需要时显示滚动条
+        self.description_text.setVerticalScrollBarPolicy(
+            Qt.ScrollBarAsNeeded
+        )  # 需要时显示滚动条
         self.description_text.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 
         # 设置样式，让它看起来更像信息展示区域而不是输入框
@@ -523,7 +582,7 @@ class FeedbackUI(QMainWindow):
         if self.predefined_options and len(self.predefined_options) > 0:
             options_frame = QFrame()
             options_layout = QVBoxLayout(options_frame)
-            options_layout.setContentsMargins(0,5,0,10)
+            options_layout.setContentsMargins(0, 5, 0, 10)
 
             for option in self.predefined_options:
                 checkbox = QCheckBox(option)
@@ -538,19 +597,23 @@ class FeedbackUI(QMainWindow):
 
         # 图片预览区域
         self.images_container = QFrame()
-        self.images_container.setStyleSheet("""
+        self.images_container.setStyleSheet(
+            """
             QFrame {
                 background: transparent;
                 border: none;
                 padding: 0px;
                 margin: 0px;
             }
-        """)
+        """
+        )
         self.images_container.setFixedHeight(80)  # 使用固定高度
         self.images_layout = QHBoxLayout(self.images_container)
         self.images_layout.setSpacing(5)  # 减少图片间距
         self.images_layout.setContentsMargins(0, 0, 0, 5)  # 移除内边距
-        self.images_layout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)  # 图片左对齐且垂直居中
+        self.images_layout.setAlignment(
+            Qt.AlignLeft | Qt.AlignVCenter
+        )  # 图片左对齐且垂直居中
         self.images_container.setVisible(False)  # 默认隐藏
 
         # 添加水平滚动支持
@@ -560,7 +623,8 @@ class FeedbackUI(QMainWindow):
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll_area.setFrameShape(QFrame.NoFrame)  # 无边框
-        scroll_area.setStyleSheet("""
+        scroll_area.setStyleSheet(
+            """
             QScrollArea {
                 background: transparent;
                 border: none;
@@ -581,7 +645,8 @@ class FeedbackUI(QMainWindow):
             QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
                 width: 0px;
             }
-        """)
+        """
+        )
         scroll_area.setWidget(self.images_container)
         scroll_area.setVisible(False)  # 默认隐藏滚动区域
         self.scroll_area = scroll_area  # 保存引用以便控制可见性
@@ -595,7 +660,7 @@ class FeedbackUI(QMainWindow):
         self.feedback_text.image_pasted.connect(self._on_image_pasted)
         # Increase font size and apply modern border to text edit
         font = self.feedback_text.font()
-        font.setPointSize(font.pointSize() )
+        font.setPointSize(font.pointSize())
         self.feedback_text.setFont(font)
         self.feedback_text.setStyleSheet(
             "QTextEdit {"
@@ -623,10 +688,14 @@ class FeedbackUI(QMainWindow):
 
         self.feedback_text.setMinimumHeight(min_height)
         self.feedback_text.setMaximumHeight(max_height)
-        self.feedback_text.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)  # 需要时显示滚动条
+        self.feedback_text.setVerticalScrollBarPolicy(
+            Qt.ScrollBarAsNeeded
+        )  # 需要时显示滚动条
         self.feedback_text.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 
-        self.feedback_text.setPlaceholderText("在此输入您的下一步要求或反馈 (Ctrl+Enter 提交) 支持粘贴图片")
+        self.feedback_text.setPlaceholderText(
+            "在此输入您的下一步要求或反馈 (Enter 提交，Shift+Enter 换行) 支持粘贴图片"
+        )
 
         # Create a horizontal layout for buttons
         button_layout = QHBoxLayout()
@@ -638,12 +707,14 @@ class FeedbackUI(QMainWindow):
 
         # Create the cancel button
         cancel_button = QPushButton("&取消")
-        cancel_button.clicked.connect(self.close) # Connect cancel button to close the window
+        cancel_button.clicked.connect(
+            self.close
+        )  # Connect cancel button to close the window
         cancel_button.setCursor(Qt.PointingHandCursor)  # 设置鼠标指针为手形
 
         # Add buttons to the horizontal layout
-        button_layout.addWidget(cancel_button) # Put cancel on the left
-        button_layout.addWidget(submit_button) # Put submit on the right
+        button_layout.addWidget(cancel_button)  # Put cancel on the left
+        button_layout.addWidget(submit_button)  # Put submit on the right
 
         # Apply modern style and increase size for the submit button
         submit_button.setStyleSheet(
@@ -693,15 +764,19 @@ class FeedbackUI(QMainWindow):
 
         label_text = f"支持 {zoom_shortcut_text} 缩放字体，{line_height_shortcut_text} 调整行高(5档循环)  Contact: RowanYang"
         by_rowanyang_label = QLabel(label_text)
-        by_rowanyang_label.setStyleSheet(""" color: gray; font-size: 10pt; font-family:"PingFang SC", "Hiragino Sans GB", sans-serif; """)
-        by_rowanyang_label.setTextInteractionFlags(Qt.TextSelectableByMouse) # Allow text selection
+        by_rowanyang_label.setStyleSheet(
+            """ color: gray; font-size: 10pt; font-family:"PingFang SC", "Hiragino Sans GB", sans-serif; """
+        )
+        by_rowanyang_label.setTextInteractionFlags(
+            Qt.TextSelectableByMouse
+        )  # Allow text selection
 
         # Create a QHBoxLayout to align "By RowanYang" to the center
         by_rowanyang_layout = QHBoxLayout()
         by_rowanyang_layout.addStretch(1)
         by_rowanyang_layout.addWidget(by_rowanyang_label)
         by_rowanyang_layout.addStretch(1)
-        layout.addSpacing(10) # 为 "By RowanYang" 文本布局添加上边距
+        layout.addSpacing(10)  # 为 "By RowanYang" 文本布局添加上边距
         layout.addLayout(by_rowanyang_layout)
 
     def _setup_shortcuts(self):
@@ -827,6 +902,7 @@ class FeedbackUI(QMainWindow):
 
     def _update_all_fonts(self):
         """更新UI中所有控件的字体"""
+
         # 递归更新所有子控件的字体
         def update_widget_font(widget):
             widget.setFont(QApplication.font())
@@ -836,12 +912,14 @@ class FeedbackUI(QMainWindow):
                 # 根据当前字体大小设置图标大小
                 font_size = QApplication.font().pointSize()
                 icon_size = max(16, int(font_size * 1.2))  # 最小16px
-                widget.setStyleSheet(f"""
+                widget.setStyleSheet(
+                    f"""
                     QCheckBox::indicator {{
                         width: {icon_size}px;
                         height: {icon_size}px;
                     }}
-                """)
+                """
+                )
 
             for child in widget.children():
                 if isinstance(child, QWidget):
@@ -885,11 +963,10 @@ class FeedbackUI(QMainWindow):
 
         # Join with a newline if both parts exist
         final_feedback = "\n\n".join(final_feedback_parts)
-        images_b64 = [img['base64'] for img in image_data]
+        images_b64 = [img["base64"] for img in image_data]
 
         self.feedback_result = FeedbackResult(
-            interactive_feedback=final_feedback,
-            images=images_b64
+            interactive_feedback=final_feedback, images=images_b64
         )
         self.close()
 
@@ -934,14 +1011,16 @@ class FeedbackUI(QMainWindow):
         # 创建一个容器帧用于放置图片和删除按钮
         image_frame = QFrame()
         image_frame.setMinimumWidth(scaled_width)
-        image_frame.setStyleSheet("""
+        image_frame.setStyleSheet(
+            """
             QFrame {
                 background: transparent;
                 border: none;
                 padding: 0px;
                 margin: 0px;
             }
-        """)
+        """
+        )
 
         # 使用QGridLayout，完全没有间距
         frame_layout = QGridLayout(image_frame)
@@ -960,10 +1039,7 @@ class FeedbackUI(QMainWindow):
 
         # 缩放图片，保持宽高比，确保完整显示（contain模式）
         scaled_pixmap = pixmap.scaled(
-            scaled_width,
-            target_height,
-            Qt.KeepAspectRatio,
-            Qt.SmoothTransformation
+            scaled_width, target_height, Qt.KeepAspectRatio, Qt.SmoothTransformation
         )
 
         # 支持视网膜屏幕
@@ -977,7 +1053,7 @@ class FeedbackUI(QMainWindow):
                 hires_scaled_width,
                 hires_target_height,
                 Qt.KeepAspectRatio,
-                Qt.SmoothTransformation
+                Qt.SmoothTransformation,
             )
 
             # 设置设备像素比
@@ -990,7 +1066,8 @@ class FeedbackUI(QMainWindow):
         delete_button = QPushButton("×")
         delete_button.setFixedSize(18, 18)
         delete_button.setCursor(Qt.PointingHandCursor)
-        delete_button.setStyleSheet("""
+        delete_button.setStyleSheet(
+            """
             QPushButton {
                 background-color: rgba(255, 0, 0, 0.7);
                 color: white;
@@ -1003,7 +1080,8 @@ class FeedbackUI(QMainWindow):
             QPushButton:hover {
                 background-color: red;
             }
-        """)
+        """
+        )
 
         # 删除图片的功能
         def delete_image():
@@ -1058,7 +1136,12 @@ class FeedbackUI(QMainWindow):
             # 如果布局为空，直接添加图片
             self.images_layout.addWidget(image_frame)
 
-def feedback_ui(prompt: str, predefined_options: Optional[List[str]] = None, output_file: Optional[str] = None) -> Optional[FeedbackResult]:
+
+def feedback_ui(
+    prompt: str,
+    predefined_options: Optional[List[str]] = None,
+    output_file: Optional[str] = None,
+) -> Optional[FeedbackResult]:
     # ----- 开启高 DPI 缩放 -----
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
@@ -1069,8 +1152,8 @@ def feedback_ui(prompt: str, predefined_options: Optional[List[str]] = None, out
     app.setStyle("Fusion")
 
     # ----- 统一设置全局默认字体大小 -----
-    default_font = app.font()           # 拿到当前系统/风格默认的 QFont
-    default_font.setPointSize(15)       # 设定全局字号为 11pt，按需修改
+    default_font = app.font()  # 拿到当前系统/风格默认的 QFont
+    default_font.setPointSize(15)  # 设定全局字号为 11pt，按需修改
     app.setFont(default_font)
 
     ui = FeedbackUI(prompt, predefined_options)
@@ -1078,7 +1161,10 @@ def feedback_ui(prompt: str, predefined_options: Optional[List[str]] = None, out
 
     if output_file and result:
         # Ensure the directory exists
-        os.makedirs(os.path.dirname(output_file) if os.path.dirname(output_file) else ".", exist_ok=True)
+        os.makedirs(
+            os.path.dirname(output_file) if os.path.dirname(output_file) else ".",
+            exist_ok=True,
+        )
         # Save the result to the output file
         with open(output_file, "w") as f:
             json.dump(result, f)
@@ -1086,14 +1172,25 @@ def feedback_ui(prompt: str, predefined_options: Optional[List[str]] = None, out
 
     return result
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="运行反馈 UI")
-    parser.add_argument("--prompt", default="我已经根据您的请求完成了修改。", help="要向用户显示的提示信息")
-    parser.add_argument("--predefined-options", default="", help="竖线分隔的预设选项列表 (|||)")
+    parser.add_argument(
+        "--prompt",
+        default="我已经根据您的请求完成了修改。",
+        help="要向用户显示的提示信息",
+    )
+    parser.add_argument(
+        "--predefined-options", default="", help="竖线分隔的预设选项列表 (|||)"
+    )
     parser.add_argument("--output-file", help="保存反馈结果的 JSON 文件路径")
     args = parser.parse_args()
 
-    predefined_options = [opt for opt in args.predefined_options.split("|||") if opt] if args.predefined_options else None
+    predefined_options = (
+        [opt for opt in args.predefined_options.split("|||") if opt]
+        if args.predefined_options
+        else None
+    )
 
     result = feedback_ui(args.prompt, predefined_options, args.output_file)
     if result:
